@@ -1,6 +1,7 @@
 package com.lza.realtimeblur.renderScript
 
 import android.graphics.Bitmap
+import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.Window
@@ -12,7 +13,7 @@ import java.util.*
  * @author liuzhongao
  * @Date 2022/11/10 14:08
  */
-class WindowBlurImpl(private val window: Window, private val blurFactor: Float, private val blurRadius: Float) {
+class WindowBlurImpl(private val window: Window, private val blurFactor: Float, private var blurRadius: Float) {
 
     private val targetList: LinkedList<BlurTarget> = LinkedList()
     private val realFactor: Float
@@ -29,20 +30,25 @@ class WindowBlurImpl(private val window: Window, private val blurFactor: Float, 
     private val decorView: View
         get() = window.decorView
 
+    val isEmpty: Boolean
+        get() = targetList.isEmpty()
+
     private val viewTreeObserver = ViewTreeObserver.OnPreDrawListener {
         val show = targetList.all { it.isShow }
         val windowBgBitmap = this.windowBgBitmap
         val blurBitmap = this.blurBitmap
         val canvas = this.blurCanvas
 
-        if (!prepare() || windowBgBitmap == null || blurBitmap == null || canvas == null || !show) {
-            return@OnPreDrawListener false
+        if (!prepare() || !show || windowBgBitmap == null || blurBitmap == null || canvas == null) {
+            Log.d("AAAAAAAA", "skip blur operation")
+            return@OnPreDrawListener true
         }
 
         windowBgBitmap.eraseColor(0xFFFFFF)
 
         val restoreCount = canvas.save()
         try {
+            canvas.scale(scaleValue, scaleValue)
             decorView.background?.draw(canvas)
             decorView.draw(canvas)
         } catch (e:Exception) {
@@ -51,18 +57,20 @@ class WindowBlurImpl(private val window: Window, private val blurFactor: Float, 
             canvas.restoreToCount(restoreCount)
         }
 
-        blurService.blur(windowBgBitmap, blurBitmap, blurRadius, scaleValue)
+        val blurRadius = blurRadius.coerceAtLeast(0f).coerceAtMost(25f)
+        blurService.blur(windowBgBitmap, blurBitmap, blurRadius)
 
         val iterator = targetList.iterator()
         while (iterator.hasNext()) {
             val target = iterator.next()
-            target.onRefreshBlurResult(bitmap = blurBitmap)
+            target.onRefreshBlurResult(bitmap = blurBitmap, scale = scaleValue)
         }
 
         return@OnPreDrawListener true
     }
 
     init {
+        blurService.init(window.context)
         window.decorView.viewTreeObserver.addOnPreDrawListener(viewTreeObserver)
     }
 
@@ -89,17 +97,35 @@ class WindowBlurImpl(private val window: Window, private val blurFactor: Float, 
 
             this.windowBgBitmap = bgBitmap
             this.blurBitmap = blurBitmap
-        }
 
+            blurService.prepare(bgBitmap)
+        }
         return true
     }
 
-
     fun addBlurTarget(target: BlurTarget) {
-
+        Log.d("AAAAAAAA", "add target")
+        if (!targetList.contains(target)) {
+            this.targetList.add(target)
+        }
     }
 
     fun removeBlurTarget(target: BlurTarget) {
+        Log.d("AAAAAAAA", "remove target")
+        targetList.remove(target)
+    }
 
+    fun release() {
+        if (targetList.isNotEmpty()) {
+            return
+        }
+        window.decorView.viewTreeObserver.removeOnPreDrawListener(viewTreeObserver)
+
+        windowBgBitmap?.recycle()
+        blurBitmap?.recycle()
+
+        blurCanvas = null
+        windowBgBitmap = null
+        blurBitmap = null
     }
 }

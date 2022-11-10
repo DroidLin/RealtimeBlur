@@ -1,5 +1,6 @@
 package com.lza.realtimeblur.interfaces
 
+import android.content.Context
 import android.graphics.Bitmap
 
 /**
@@ -7,6 +8,9 @@ import android.graphics.Bitmap
  * @Date 2022/11/10 13:56
  */
 interface BlurTarget {
+    val ctx: Context
     val isShow: Boolean
-    fun onRefreshBlurResult(bitmap: Bitmap)
+    val blurFactor: Float
+    val blurRadius: Float
+    fun onRefreshBlurResult(bitmap: Bitmap, scale: Float)
 }

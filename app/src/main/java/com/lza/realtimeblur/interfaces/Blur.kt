@@ -9,6 +9,7 @@ import android.graphics.Bitmap
  */
 interface Blur {
     fun init(context: Context)
-    fun blur(input: Bitmap, output: Bitmap, radius: Float, scale: Float)
+    fun blur(input: Bitmap, output: Bitmap, radius: Float)
+    fun prepare(buffer: Bitmap): Boolean
     fun release(context: Context)
 }

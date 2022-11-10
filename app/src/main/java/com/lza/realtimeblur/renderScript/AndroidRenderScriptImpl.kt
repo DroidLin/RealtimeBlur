@@ -1,5 +1,6 @@
 package com.lza.realtimeblur.renderScript
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.renderscript.Allocation
@@ -23,21 +24,28 @@ internal object AndroidRenderScriptImpl: Blur {
     private var blurOutput: Allocation? = null
 
     override fun init(context: Context) {
+        if (renderScript != null && blurScript != null && blurInput != null && blurOutput != null ) {
+            return
+        }
         val renderScript = RenderScript.create(context)
-        val blurScript = ScriptIntrinsicBlur.create(
-            AndroidRenderScriptImpl.renderScript, Element.U8_4(
-                AndroidRenderScriptImpl.renderScript
-            ))
+        val blurScript = ScriptIntrinsicBlur.create(renderScript, Element.U8_4(renderScript))
+
+        this.renderScript = renderScript
+        this.blurScript = blurScript
 
         val bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
-        val allocationInput = Allocation.createFromBitmap(renderScript, bitmap, Allocation.MipmapControl.MIPMAP_NONE, Allocation.USAGE_SCRIPT)
-        val allocationOutput = Allocation.createTyped(renderScript, allocationInput.getType())
+        prepare(bitmap)
         bitmap.recycle()
+    }
 
-        AndroidRenderScriptImpl.renderScript = renderScript
-        AndroidRenderScriptImpl.blurScript = blurScript
-        blurInput = allocationInput
-        blurOutput = allocationOutput
+    @SuppressLint("SoonBlockedPrivateApi")
+    override fun prepare(buffer: Bitmap): Boolean {
+        val allocationInput = Allocation.createFromBitmap(renderScript, buffer, Allocation.MipmapControl.MIPMAP_NONE, Allocation.USAGE_SCRIPT)
+        val allocationOutput = Allocation.createTyped(renderScript, allocationInput.type)
+
+        this.blurInput = allocationInput
+        this.blurOutput = allocationOutput
+        return true
     }
 
     override fun blur(input: Bitmap, output: Bitmap, radius: Float) {
@@ -47,8 +55,8 @@ internal object AndroidRenderScriptImpl: Blur {
         if (blurScript == null || blurInput == null || blurOutput == null) {
             return
         }
-
         blurInput.copyFrom(input)
+        blurScript.setRadius(radius)
         blurScript.setInput(blurInput)
         blurScript.forEach(blurOutput)
         blurOutput.copyTo(output)
