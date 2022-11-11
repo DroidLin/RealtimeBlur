@@ -35,17 +35,16 @@ class RealtimeBlurViewGroup : FrameLayout, BlurTarget {
         get() = super.getContext()
     override val isShow: Boolean
         get() = super.isShown()
-    override val blurFactor: Float
-        get() = 10f
-    override val blurRadius: Float
-        get() = 18f
+    override var blurFactor: Float = 10f
+    override var blurRadius: Float = 10f
 
     private val locationOnScreen = IntArray(2) { 0 }
     private val sourceRect = Rect()
     private val destinationRect = RectF()
     private val paint = Paint()
     private var drawBitmap: Bitmap? = null
-    private var scale: Float = 1f
+    private val scale: Float
+        get() = 1f / blurFactor
 
     init {
         setWillNotDraw(false)
@@ -63,13 +62,15 @@ class RealtimeBlurViewGroup : FrameLayout, BlurTarget {
         windowBlurService.unRegisterBlurTarget(this)
     }
 
-    override fun onRefreshBlurResult(bitmap: Bitmap, scale: Float) {
+    override fun onRefreshBlurResult(bitmap: Bitmap, dirty: Boolean) {
         if (drawBitmap == null || drawBitmap != bitmap) {
             drawBitmap = bitmap
-            postInvalidate()
-            Log.d("AAAAAAAA", "postInvalidate")
         }
-        this.scale = scale
+//        this.scale = scale
+        if (dirty) {
+            Log.d("AAAAAAAA", "postInvalidate")
+            postInvalidate()
+        }
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -78,6 +79,9 @@ class RealtimeBlurViewGroup : FrameLayout, BlurTarget {
             return
         }
         val bitmap = drawBitmap ?: return
+        if (bitmap.isRecycled) {
+            return
+        }
 
         getLocationInWindow(locationOnScreen)
 
@@ -94,9 +98,9 @@ class RealtimeBlurViewGroup : FrameLayout, BlurTarget {
         canvas.drawBitmap(bitmap, sourceRect, destinationRect, paint)
         canvas.restore()
 
-        val color = 0xAAFFFFFF
-        paint.color = color.toInt()
-        canvas.drawRect(destinationRect, paint)
+//        val color = 0xAAFFFFFF
+//        paint.color = color.toInt()
+//        canvas.drawRect(destinationRect, paint)
         super.onDraw(canvas)
     }
 

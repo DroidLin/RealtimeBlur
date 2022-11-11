@@ -10,6 +10,7 @@
         android:layout_height="match_parent" />
 
     <com.lza.realtimeblur.android.RealtimeBlurViewGroup
+        android:id="@+id/top_blur_view"
         android:layout_width="match_parent"
         android:layout_height="100dp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -17,6 +18,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <com.lza.realtimeblur.android.RealtimeBlurViewGroup
+        android:id="@+id/center_blur_view"
         android:layout_width="match_parent"
         android:layout_height="100dp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -25,9 +27,41 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <com.lza.realtimeblur.android.RealtimeBlurViewGroup
+        android:id="@+id/bottom_blur_view"
         android:layout_width="match_parent"
         android:layout_height="100dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <SeekBar
+        android:id="@+id/radius"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="25"
+        app:layout_constraintBottom_toBottomOf="@id/downFactors"
+        app:layout_constraintTop_toTopOf="@id/center_blur_view" />
+
+    <SeekBar
+        android:id="@+id/downFactors"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        app:layout_constraintBottom_toBottomOf="@id/center_blur_view"
+        app:layout_constraintTop_toBottomOf="@id/radius" />
+
+    <TextView
+        android:id="@+id/radius_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@id/radius"
+        app:layout_constraintStart_toStartOf="@id/radius" />
+
+    <TextView
+        android:id="@+id/downFactors_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="@id/downFactors"
+        app:layout_constraintTop_toBottomOf="@id/downFactors" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

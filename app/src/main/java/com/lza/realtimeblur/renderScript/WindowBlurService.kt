@@ -24,7 +24,7 @@ internal object WindowBlurService: GlobalBlurService {
         if (blurImplementations[window] == null) {
             synchronized(blurImplementations) {
                 if (blurImplementations[window] == null) {
-                    val impl = WindowBlurImpl(window, target.blurFactor, target.blurRadius)
+                    val impl = WindowBlurImpl(window, { target.blurFactor }, { target.blurRadius })
                     blurImplementations[window] = impl
                 }
             }

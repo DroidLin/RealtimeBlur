@@ -12,5 +12,5 @@ interface BlurTarget {
     val isShow: Boolean
     val blurFactor: Float
     val blurRadius: Float
-    fun onRefreshBlurResult(bitmap: Bitmap, scale: Float)
+    fun onRefreshBlurResult(bitmap: Bitmap, dirty: Boolean)
 }

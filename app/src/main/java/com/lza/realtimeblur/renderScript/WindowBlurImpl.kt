@@ -13,19 +13,20 @@ import java.util.*
  * @author liuzhongao
  * @Date 2022/11/10 14:08
  */
-class WindowBlurImpl(private val window: Window, private val blurFactor: Float, private var blurRadius: Float) {
+class WindowBlurImpl(private val window: Window, private val blurFactor: () -> Float, private var blurRadius: () -> Float) {
 
     private val targetList: LinkedList<BlurTarget> = LinkedList()
     private val realFactor: Float
-        get() = blurFactor.coerceAtLeast(1f).coerceAtMost(20f)
+        get() = blurFactor().coerceAtLeast(1f)
 
     private val scaleValue: Float
-        get() = 1f / blurFactor
+        get() = 1f / blurFactor()
 
     private var blurCanvas: BlurCanvas? = null
 
     private var windowBgBitmap: Bitmap? = null
     private var blurBitmap: Bitmap? = null
+    private var dirty: Boolean = false
 
     private val decorView: View
         get() = window.decorView
@@ -35,12 +36,18 @@ class WindowBlurImpl(private val window: Window, private val blurFactor: Float, 
 
     private val viewTreeObserver = ViewTreeObserver.OnPreDrawListener {
         val show = targetList.all { it.isShow }
-        val windowBgBitmap = this.windowBgBitmap
-        val blurBitmap = this.blurBitmap
         val canvas = this.blurCanvas
+        var windowBgBitmap = this.windowBgBitmap
+        var blurBitmap = this.blurBitmap
 
         if (!prepare() || !show || windowBgBitmap == null || blurBitmap == null || canvas == null) {
             Log.d("AAAAAAAA", "skip blur operation")
+            return@OnPreDrawListener true
+        }
+        windowBgBitmap = this.windowBgBitmap
+        blurBitmap = this.blurBitmap
+
+        if (windowBgBitmap == null || blurBitmap == null || windowBgBitmap.isRecycled || blurBitmap.isRecycled) {
             return@OnPreDrawListener true
         }
 
@@ -57,14 +64,18 @@ class WindowBlurImpl(private val window: Window, private val blurFactor: Float, 
             canvas.restoreToCount(restoreCount)
         }
 
-        val blurRadius = blurRadius.coerceAtLeast(0f).coerceAtMost(25f)
-        blurService.blur(windowBgBitmap, blurBitmap, blurRadius)
+        val blurRadius = blurRadius
+        if (blurRadius() in 1f..25f) {
+            blurService.blur(windowBgBitmap, blurBitmap, blurRadius())
+        }
 
         val iterator = targetList.iterator()
+        val dirty = this.dirty
         while (iterator.hasNext()) {
             val target = iterator.next()
-            target.onRefreshBlurResult(bitmap = blurBitmap, scale = scaleValue)
+            target.onRefreshBlurResult(bitmap = blurBitmap, dirty = dirty)
         }
+        this.dirty = false
 
         return@OnPreDrawListener true
     }
@@ -85,6 +96,8 @@ class WindowBlurImpl(private val window: Window, private val blurFactor: Float, 
 
         val needRegenerateDrawBitmap = blurCanvas == null || windowBackgroundBitmap == null || windowBackgroundBitmap.width != scaleWidth || windowBackgroundBitmap.height != scaleHeight
         if (needRegenerateDrawBitmap) {
+            Log.d("AAAAAAAA", "new draw bitmap")
+            this.dirty = true
             this.windowBgBitmap?.recycle()
             this.blurBitmap?.recycle()
 
